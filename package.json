@@ -1,0 +1,16 @@
+{
+  "name": "take-my-pill",
+  "version": "1.0.0",
+  "description": "Take My Pill legacy PWA: web push reminders via Netlify Functions",
+  "main": "sw.js",
+  "scripts": {
+    "dev": "netlify dev"
+  },
+  "author": "Eyal Gross",
+  "license": "MIT",
+  "dependencies": {
+    "@netlify/blobs": "^10.7.4",
+    "web-push": "^3.6.7"
+  },
+  "private": true
+}

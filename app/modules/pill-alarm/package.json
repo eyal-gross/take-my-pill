@@ -1,0 +1,10 @@
+{
+  "name": "pill-alarm",
+  "version": "1.0.0",
+  "description": "Thin Expo bridge to the AlarmKit core that lives in the main app target (native/ios).",
+  "main": "index.ts",
+  "license": "UNLICENSED",
+  "author": "Eyal Gross",
+  "homepage": "https://github.com/eyal-gross/take-my-pill",
+  "private": true
+}

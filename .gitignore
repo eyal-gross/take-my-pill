@@ -1,0 +1,32 @@
+# root (legacy PWA)
+node_modules/
+.netlify/
+.env
+.env.*
+!.env.example
+.DS_Store
+.claude/settings.local.json
+
+# native app (app/)
+app/node_modules/
+app/.expo/
+app/dist/
+app/web-build/
+app/ios/
+app/android/
+app/*.orig.*
+app/*.jks
+app/*.p8
+app/*.p12
+app/*.key
+app/*.mobileprovision
+app/.env*.local
+.claude/
+app/.env
+
+# Large / private audio sources and the custom alarm sounds (bring your own, see README)
+sound-source/
+recordings/
+app/assets/sounds/*.caf
+app/assets/sounds/previews/song-preview.m4a
+app/review/index.html

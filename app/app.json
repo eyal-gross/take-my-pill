@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Take My Pill",
+    "slug": "take-my-pill",
+    "owner": "your-expo-account",
+    "extra": {
+      "eas": {
+        "projectId": "YOUR_EAS_PROJECT_ID"
+      }
+    }
+  }
+}

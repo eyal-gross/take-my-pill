@@ -1,0 +1,26 @@
+{
+  "cli": {
+    "version": ">= 25.0.0",
+    "appVersionSource": "remote",
+    "promptToConfigurePushNotifications": false
+  },
+  "build": {
+    "testflight": {
+      "distribution": "store",
+      "channel": "preview",
+      "autoIncrement": true,
+      "ios": {
+        "image": "macos-tahoe-26.5-xcode-26.6"
+      }
+    }
+  },
+  "submit": {
+    "testflight": {
+      "ios": {
+        "appleId": "you@example.com",
+        "appleTeamId": "YOUR_APPLE_TEAM_ID",
+        "ascAppId": "YOUR_APP_STORE_CONNECT_APP_ID"
+      }
+    }
+  }
+}

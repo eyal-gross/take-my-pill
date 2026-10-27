@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="גלולה">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <title>תזכורת גלולה</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    html { height: 100%; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      height: 100dvh;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* ── Main area: button lives here ── */
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0 1.5rem;
+      padding-top: env(safe-area-inset-top, 0px);
+    }
+
+    .status-text {
+      font-size: 0.95rem;
+      color: #64748b;
+      margin-bottom: 2rem;
+      min-height: 1.3em;
+      text-align: center;
+    }
+
+    /* ── Taken indicator above button ── */
+    .taken-indicator {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      animation: fadeInUp 0.5s ease;
+    }
+
+    .taken-indicator.visible {
+      display: flex;
+    }
+
+    .taken-indicator .taken-check {
+      font-size: 3.5rem;
+      font-weight: 900;
+      color: #10b981;
+      line-height: 1;
+      text-shadow: 0 0 20px rgba(16, 185, 129, 0.5);
+    }
+
+    .taken-indicator .taken-label {
+      font-size: 1.6rem;
+      font-weight: 800;
+      color: #10b981;
+      margin-top: 0.3rem;
+      text-shadow: 0 0 15px rgba(16, 185, 129, 0.3);
+    }
+
+    .taken-indicator .taken-time {
+      font-size: 1rem;
+      color: #6ee7b7;
+      margin-top: 0.25rem;
+      font-weight: 600;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Big pill button ── */
+    .pill-btn-wrap { position: relative; }
+
+    .pill-btn {
+      width: 64vw;
+      height: 64vw;
+      max-width: 280px;
+      max-height: 280px;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-weight: 800;
+      color: white;
+      background: linear-gradient(145deg, #7c3aed, #5b21b6);
+      box-shadow:
+        0 0 0 6px rgba(124, 58, 237, 0.1),
+        0 10px 50px rgba(124, 58, 237, 0.35),
+        inset 0 -4px 12px rgba(0,0,0,0.15);
+      transition: all 0.3s ease;
+      -webkit-tap-highlight-color: transparent;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+
+    .pill-btn .pill-emoji {
+      font-size: 4.5rem;
+      line-height: 1;
+      position: relative;
+      z-index: 2;
+    }
+
+    .pill-btn .btn-label {
+      font-size: 1.15rem;
+      margin-top: 0.1rem;
+      position: relative;
+      z-index: 2;
+    }
+
+    .pill-btn:active:not(:disabled) {
+      transform: scale(0.93);
+    }
+
+    .pill-btn:disabled {
+      background: linear-gradient(145deg, #1e293b, #0f172a);
+      box-shadow:
+        0 0 0 6px rgba(30, 41, 59, 0.2),
+        0 4px 20px rgba(0, 0, 0, 0.4),
+        inset 0 -4px 12px rgba(0,0,0,0.2);
+      cursor: not-allowed;
+      color: #475569;
+    }
+
+    .pill-btn.taken,
+    .pill-btn.taken:disabled {
+      background: #10b981 !important;
+      box-shadow:
+        0 0 0 6px rgba(16, 185, 129, 0.25),
+        0 10px 50px rgba(5, 150, 105, 0.4) !important;
+      cursor: default;
+      color: #ffffff !important;
+      text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+    }
+
+    @keyframes pulse-ring {
+      0% { transform: scale(1); opacity: 0.35; }
+      100% { transform: scale(1.18); opacity: 0; }
+    }
+
+    .pill-btn-wrap .pulse {
+      position: absolute; inset: -2px;
+      border-radius: 50%;
+      border: 3px solid #7c3aed;
+      animation: pulse-ring 2s ease-out infinite;
+      pointer-events: none;
+    }
+
+    .pill-btn:disabled ~ .pulse,
+    .pill-btn.taken ~ .pulse { display: none; }
+
+    /* ── Bottom bar: collapsed clocks toggle ── */
+    .bottom-bar {
+      flex-shrink: 0;
+      padding: 0 1rem;
+      padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.75rem);
+    }
+
+    .clocks-toggle {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.85rem 1rem;
+      background: #1e293b;
+      border-radius: 1rem;
+      border: 1px solid #334155;
+      cursor: pointer;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .clocks-toggle-icon { font-size: 1.1rem; }
+
+    .clocks-toggle-label {
+      font-size: 0.9rem;
+      color: #94a3b8;
+      font-weight: 600;
+      flex: 1;
+    }
+
+    .clocks-toggle-count {
+      background: #7c3aed;
+      color: white;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: 1rem;
+      min-width: 1.5rem;
+      text-align: center;
+    }
+
+    .clocks-toggle-count.zero { background: #334155; color: #64748b; }
+
+    .clocks-chevron {
+      color: #475569;
+      font-size: 0.65rem;
+      transition: transform 0.3s;
+    }
+
+    /* ── Bottom sheet overlay ── */
+    .sheet-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s;
+    }
+
+    .sheet-overlay.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* ── Bottom sheet ── */
+    .sheet {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: #1e293b;
+      border-radius: 1.25rem 1.25rem 0 0;
+      z-index: 60;
+      transform: translateY(100%);
+      transition: transform 0.35s cubic-bezier(0.32, 0.72, 0, 1);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      max-height: 70dvh;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .sheet.open { transform: translateY(0); }
+
+    .sheet-handle {
+      width: 36px;
+      height: 4px;
+      background: #475569;
+      border-radius: 2px;
+      margin: 0.75rem auto 0.5rem;
+    }
+
+    .sheet-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.5rem 1.25rem 0.75rem;
+      border-bottom: 1px solid #334155;
+    }
+
+    .sheet-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #e2e8f0;
+    }
+
+    .sheet-close {
+      background: none;
+      border: none;
+      color: #64748b;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem;
+      line-height: 1;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .clocks-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.5rem;
+      padding: 1rem 1.25rem;
+    }
+
+    .clock-chip {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.35rem;
+      padding: 0.75rem 0.25rem;
+      border-radius: 0.75rem;
+      background: #0f172a;
+      border: 1.5px solid #334155;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      cursor: pointer;
+      transition: all 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      min-height: 44px;
+    }
+
+    .clock-chip.on {
+      background: rgba(124, 58, 237, 0.15);
+      border-color: #7c3aed;
+      color: #c4b5fd;
+    }
+
+    .clock-chip.on .clock-dot {
+      background: #7c3aed;
+      box-shadow: 0 0 6px rgba(124, 58, 237, 0.5);
+    }
+
+    .clock-chip.past .clock-label {
+      color: inherit;
+    }
+
+    .clock-dot {
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: #334155;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .sheet-history {
+      padding: 0.75rem 1.25rem 1rem;
+      border-top: 1px solid #334155;
+    }
+
+    .sheet-history-title {
+      font-size: 0.8rem;
+      color: #475569;
+      font-weight: 600;
+      margin-bottom: 0.4rem;
+    }
+
+    .sheet-history-list {
+      list-style: none;
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+
+    .sheet-history-list li {
+      padding: 0.3rem 0;
+    }
+
+    /* ── Reset (dev) ── */
+    .reset-btn {
+      position: fixed;
+      top: calc(env(safe-area-inset-top, 0px) + 0.5rem);
+      left: 0.5rem;
+      background: #3b82f6;
+      color: white;
+      border: none;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.75rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      z-index: 1000;
+      opacity: 0.6;
+    }
+
+    .reset-btn:active { opacity: 1; }
+
+    /* ── Notification permission banner ── */
+    .notif-banner {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: linear-gradient(135deg, #7c3aed, #5b21b6);
+      color: white;
+      padding: 1.1rem 1.5rem;
+      padding-bottom: calc(1.1rem + env(safe-area-inset-bottom, 0px));
+      text-align: center;
+      font-size: 0.95rem;
+      font-weight: 600;
+      z-index: 200;
+      cursor: pointer;
+      display: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+
+    /* ── Confetti ── */
+    #confetti {
+      position: fixed; inset: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="confetti"></canvas>
+  <button class="reset-btn" onclick="resetAll()">RESET</button>
+
+  <!-- Main screen: status + big button -->
+  <div class="main">
+    <div class="taken-indicator" id="takenIndicator">
+      <span class="taken-check">✔</span>
+      <span class="taken-label">נלקחה!</span>
+      <span class="taken-time" id="takenTime"></span>
+    </div>
+    <div class="status-text" id="status"></div>
+    <div class="pill-btn-wrap">
+      <button class="pill-btn" id="pillBtn" onclick="handleTaken()" disabled>
+        <span class="pill-emoji">💊</span>
+        <span class="btn-label">לקחתי היום</span>
+      </button>
+      <div class="pulse"></div>
+    </div>
+  </div>
+
+  <!-- Bottom bar: tap to open clocks sheet -->
+  <div class="bottom-bar">
+    <div class="clocks-toggle" onclick="openSheet()">
+      <span class="clocks-toggle-icon">🔔</span>
+      <span class="clocks-toggle-label">התראות</span>
+      <span class="clocks-toggle-count" id="clockCount">0</span>
+      <span class="clocks-chevron">▲</span>
+    </div>
+  </div>
+
+  <!-- Bottom sheet: clocks + history -->
+  <div class="sheet-overlay" id="sheetOverlay" onclick="closeSheet()"></div>
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <span class="sheet-title">התראות</span>
+      <button class="sheet-close" onclick="closeSheet()">×</button>
+    </div>
+    <div class="clocks-grid" id="clocksGrid"></div>
+    <div class="sheet-history" id="historySection" style="display:none">
+      <div class="sheet-history-title">היסטוריה</div>
+      <ul class="sheet-history-list" id="historyList"></ul>
+    </div>
+  </div>
+
+  <!-- Banners -->
+  <div class="notif-banner" id="notifBanner" onclick="requestPushPermission()">
+    לחצי כאן כדי לאשר התראות 🔔
+  </div>
+
+
+  <script>
+    // ── Config ──
+    const ACTIVE_START = 18;
+    const ACTIVE_END   = 4;
+    const STORAGE_KEY  = 'pill_taken';
+    const HISTORY_KEY  = 'pill_history';
+    const CLOCKS_KEY   = 'pill_clocks';
+    const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY';
+
+    const CLOCK_TIMES = [
+      { h: 18, m: 0  }, { h: 19, m: 0  }, { h: 20, m: 0  }, { h: 21, m: 0  },
+      { h: 22, m: 0  }, { h: 22, m: 30 }, { h: 23, m: 0  }, { h: 23, m: 30 },
+      { h: 0,  m: 0  }, { h: 0,  m: 30 }, { h: 1,  m: 0  }, { h: 1,  m: 30 },
+      { h: 2,  m: 0  }, { h: 2,  m: 30 }, { h: 3,  m: 0  }, { h: 3,  m: 30 },
+      { h: 4,  m: 0  },
+    ];
+
+    let swRegistration = null;
+    let pushSubscription = null;
+
+    // ── API ──
+    const API_BASE = '/.netlify/functions';
+    async function apiPost(path, body) {
+      try {
+        const res = await fetch(`${API_BASE}${path}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        return await res.json();
+      } catch (err) { console.error(`API ${path}:`, err); return null; }
+    }
+
+    // ── Init ──
+    async function init() {
+      if ('serviceWorker' in navigator) {
+        try {
+          swRegistration = await navigator.serviceWorker.register('/sw.js');
+          await navigator.serviceWorker.ready;
+        } catch (e) { console.error('SW fail', e); }
+      }
+
+      if ('Notification' in window && swRegistration) {
+        if (Notification.permission === 'granted') {
+          await subscribeToPush();
+        } else if (Notification.permission === 'default') {
+          document.getElementById('notifBanner').style.display = 'block';
+        }
+      }
+
+      renderClocks();
+      updateUI();
+      updateClockCount();
+      renderHistory();
+
+      setInterval(() => {
+        updateUI();
+        refreshClockStates();
+        updateClockCount();
+      }, 30 * 1000);
+    }
+
+    // ── Push ──
+    async function requestPushPermission() {
+      document.getElementById('notifBanner').style.display = 'none';
+      if (!('Notification' in window)) return;
+      const perm = await Notification.requestPermission();
+      if (perm === 'granted') await subscribeToPush();
+    }
+
+    async function subscribeToPush() {
+      if (!swRegistration) return;
+      try {
+        pushSubscription = await swRegistration.pushManager.getSubscription();
+        if (!pushSubscription) {
+          pushSubscription = await swRegistration.pushManager.subscribe({
+            userVisibleOnly: true,
+            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+          });
+        }
+        localStorage.setItem('push_endpoint', pushSubscription.endpoint);
+        await apiPost('/subscribe', {
+          subscription: pushSubscription.toJSON(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        });
+      } catch (err) { console.error('Push sub fail:', err); }
+    }
+
+    function urlBase64ToUint8Array(base64String) {
+      const padding = '='.repeat((4 - base64String.length % 4) % 4);
+      const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+      const raw = atob(base64);
+      const arr = new Uint8Array(raw.length);
+      for (let i = 0; i < raw.length; i++) arr[i] = raw.charCodeAt(i);
+      return arr;
+    }
+
+    // ── Cycle ──
+    function getCycleStart(now) {
+      const d = new Date(now);
+      d.setHours(ACTIVE_START, 0, 0, 0);
+      if (now >= d) return d;
+      d.setDate(d.getDate() - 1);
+      return d;
+    }
+
+    function isTakenThisCycle() {
+      const s = localStorage.getItem(STORAGE_KEY);
+      return s ? new Date(s) >= getCycleStart(new Date()) : false;
+    }
+
+    function getTakenDate() {
+      const s = localStorage.getItem(STORAGE_KEY);
+      return s ? new Date(s) : null;
+    }
+
+    function isButtonActiveTime() {
+      const h = new Date().getHours();
+      return h >= ACTIVE_START || h < ACTIVE_END;
+    }
+
+    // ── Clocks ──
+    function getClockStates() {
+      const s = localStorage.getItem(CLOCKS_KEY);
+      return s ? JSON.parse(s) : CLOCK_TIMES.map(() => true);
+    }
+
+    function saveClockStates(states) {
+      localStorage.setItem(CLOCKS_KEY, JSON.stringify(states));
+    }
+
+    function clockTimeToDate(ct) {
+      const now = new Date();
+      const d = new Date(now);
+      d.setSeconds(0, 0); d.setHours(ct.h, ct.m);
+      if (ct.h < 12 && now.getHours() >= 12) d.setDate(d.getDate() + 1);
+      return d;
+    }
+
+    function isClockPast(ct) { return clockTimeToDate(ct) <= new Date(); }
+
+    function fmt(ct) {
+      return `${String(ct.h).padStart(2, '0')}:${String(ct.m).padStart(2, '0')}`;
+    }
+
+    function renderClocks() {
+      const grid = document.getElementById('clocksGrid');
+      const states = getClockStates();
+      grid.innerHTML = CLOCK_TIMES.map((ct, i) => {
+        const on = states[i];
+        const cls = ['clock-chip'];
+        if (on) cls.push('on');
+        return `<div class="${cls.join(' ')}" onclick="toggleClock(${i})">
+          <span class="clock-dot"></span><span>${fmt(ct)}</span>
+        </div>`;
+      }).join('');
+    }
+
+    function refreshClockStates() {
+      const states = getClockStates();
+      document.querySelectorAll('.clock-chip').forEach((chip, i) => {
+        chip.classList.toggle('on', states[i]);
+      });
+    }
+
+    function toggleClock(i) {
+      const states = getClockStates();
+      states[i] = !states[i];
+      saveClockStates(states);
+      renderClocks();
+      updateClockCount();
+      syncClocksToServer(states);
+    }
+
+    function syncClocksToServer(states) {
+      const endpoint = pushSubscription ? pushSubscription.endpoint : localStorage.getItem('push_endpoint');
+      if (endpoint) {
+        apiPost('/clocks', { endpoint, clockStates: states });
+      }
+    }
+
+    function turnOffAllClocks() {
+      const states = CLOCK_TIMES.map(() => false);
+      saveClockStates(states);
+      renderClocks();
+      updateClockCount();
+      syncClocksToServer(states);
+    }
+
+    function resetClocksForNewCycle() {
+      const states = CLOCK_TIMES.map(() => true);
+      saveClockStates(states);
+      syncClocksToServer(states);
+    }
+
+    function updateClockCount() {
+      const states = getClockStates();
+      const count = states.filter(on => on).length;
+      const el = document.getElementById('clockCount');
+      el.textContent = count;
+      el.classList.toggle('zero', count === 0);
+    }
+
+    // ── Sheet ──
+    function openSheet() {
+      document.getElementById('sheet').classList.add('open');
+      document.getElementById('sheetOverlay').classList.add('open');
+    }
+
+    function closeSheet() {
+      document.getElementById('sheet').classList.remove('open');
+      document.getElementById('sheetOverlay').classList.remove('open');
+    }
+
+    // ── Main button ──
+    async function handleTaken() {
+      if (!isButtonActiveTime() || isTakenThisCycle()) return;
+
+      const now = new Date();
+      localStorage.setItem(STORAGE_KEY, now.toISOString());
+
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      history.unshift(now.toISOString());
+      if (history.length > 30) history.length = 30;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+
+      turnOffAllClocks();
+
+      const endpoint = pushSubscription ? pushSubscription.endpoint : localStorage.getItem('push_endpoint');
+      if (endpoint) {
+        console.log('[TAKEN] Sending /taken with endpoint:', endpoint.slice(-20));
+        apiPost('/taken', { endpoint }).then(res => {
+          console.log('[TAKEN] Server response:', JSON.stringify(res));
+        });
+      } else {
+        console.warn('[TAKEN] No endpoint available — /taken was NOT sent!');
+      }
+
+      if (swRegistration) {
+        swRegistration.getNotifications({ tag: 'pill-reminder' }).then(ns => ns.forEach(n => n.close()));
+      }
+
+      if (navigator.vibrate) navigator.vibrate([50, 30, 50]);
+      launchConfetti();
+      updateUI();
+      renderHistory();
+    }
+
+    // ── UI ──
+    function updateUI() {
+      const btn = document.getElementById('pillBtn');
+      const status = document.getElementById('status');
+      const indicator = document.getElementById('takenIndicator');
+      const takenTime = document.getElementById('takenTime');
+      const taken = isTakenThisCycle();
+      const active = isButtonActiveTime();
+
+      if (taken) {
+        btn.disabled = true;
+        btn.classList.add('taken');
+        btn.querySelector('.pill-emoji').textContent = '✓';
+        btn.querySelector('.btn-label').textContent = 'נלקחה!';
+        const d = getTakenDate();
+        const timeStr = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        takenTime.textContent = `ב-${timeStr}`;
+        indicator.classList.add('visible');
+        status.textContent = '';
+      } else if (active) {
+        btn.disabled = false;
+        btn.classList.remove('taken');
+        btn.querySelector('.pill-emoji').textContent = '💊';
+        btn.querySelector('.btn-label').textContent = 'לקחתי היום';
+        status.textContent = '';
+        indicator.classList.remove('visible');
+      } else {
+        btn.disabled = true;
+        btn.classList.remove('taken');
+        btn.querySelector('.pill-emoji').textContent = '😴';
+        btn.querySelector('.btn-label').textContent = 'עוד לא הזמן';
+        status.textContent = `פעיל מ-${ACTIVE_START}:00`;
+        indicator.classList.remove('visible');
+      }
+
+      const lastReset = localStorage.getItem('pill_last_reset');
+      const cycleKey = getCycleStart(new Date()).toISOString();
+      if (lastReset !== cycleKey && !taken) {
+        resetClocksForNewCycle();
+        renderClocks();
+        updateClockCount();
+        localStorage.setItem('pill_last_reset', cycleKey);
+      }
+    }
+
+    // ── History ──
+    function renderHistory() {
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+      const section = document.getElementById('historySection');
+      const list = document.getElementById('historyList');
+      if (history.length === 0) { section.style.display = 'none'; return; }
+      section.style.display = 'block';
+      list.innerHTML = history.slice(0, 7).map(iso => {
+        const d = new Date(iso);
+        const day = d.toLocaleDateString('he-IL', { weekday: 'short', day: 'numeric', month: 'numeric' });
+        const time = d.toLocaleTimeString('he-IL', { hour: '2-digit', minute: '2-digit' });
+        return `<li>${day} · ${time}</li>`;
+      }).join('');
+    }
+
+    // ── Reset (dev) ──
+    function resetAll() {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.removeItem(CLOCKS_KEY);
+      localStorage.removeItem('pill_last_reset');
+      resetClocksForNewCycle();
+      renderClocks();
+      updateClockCount();
+      updateUI();
+      // Clear takenUntil on server
+      const endpoint = pushSubscription ? pushSubscription.endpoint : localStorage.getItem('push_endpoint');
+      if (endpoint) {
+        apiPost('/taken-reset', { endpoint });
+      }
+    }
+
+    // ── Confetti ──
+    function launchConfetti() {
+      const canvas = document.getElementById('confetti');
+      const ctx = canvas.getContext('2d');
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+      const pieces = [];
+      const colors = ['#7c3aed','#a78bfa','#c4b5fd','#059669','#34d399','#fbbf24','#f472b6','#fb923c'];
+      const emojis = ['💊','✨','🎉','💜','🌟'];
+      for (let i = 0; i < 80; i++) {
+        pieces.push({
+          x: canvas.width / 2 + (Math.random() - 0.5) * 60,
+          y: canvas.height * 0.42,
+          vx: (Math.random() - 0.5) * 18,
+          vy: -(Math.random() * 16 + 4),
+          size: Math.random() * 8 + 3,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          rotation: Math.random() * 360,
+          rotSpeed: (Math.random() - 0.5) * 12,
+          gravity: 0.25 + Math.random() * 0.15,
+          opacity: 1,
+          type: Math.random() > 0.7 ? 'emoji' : 'rect',
+          emoji: emojis[Math.floor(Math.random() * emojis.length)],
+        });
+      }
+      let frame = 0;
+      function animate() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        let alive = false;
+        for (const p of pieces) {
+          p.x += p.vx; p.vy += p.gravity; p.y += p.vy;
+          p.vx *= 0.99; p.rotation += p.rotSpeed;
+          if (frame > 40) p.opacity -= 0.016;
+          if (p.opacity <= 0) continue;
+          alive = true;
+          ctx.save();
+          ctx.globalAlpha = Math.max(0, p.opacity);
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rotation * Math.PI / 180);
+          if (p.type === 'emoji') {
+            ctx.font = `${p.size * 2.5}px serif`;
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            ctx.fillText(p.emoji, 0, 0);
+          } else {
+            ctx.fillStyle = p.color;
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          }
+          ctx.restore();
+        }
+        frame++;
+        if (alive) requestAnimationFrame(animate);
+        else ctx.clearRect(0, 0, canvas.width, canvas.height);
+      }
+      animate();
+    }
+
+    init();
+  </script>
+</body>
+</html>
